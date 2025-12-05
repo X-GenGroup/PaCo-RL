@@ -1,0 +1,13 @@
+*.log
+.DS_Store
+.cache
+__pycache__/
+*.egg-info/
+
+logs/
+notebooks/
+swanlog/
+wandb/
+
+
+*.ipynb

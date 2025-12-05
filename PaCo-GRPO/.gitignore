@@ -1,0 +1,17 @@
+*.log
+*.pid
+vllm_*.json
+*.tmux
+.DS_Store
+.installed.cfg
+*.egg
+MANIFEST
+
+
+*.egg-info/
+wandb/
+logs/
+notebooks/
+swanlog/
+out/
+__pycache__/
