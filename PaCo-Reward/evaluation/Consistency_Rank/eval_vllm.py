@@ -40,10 +40,13 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description="Evaluate Consistency Scorer on Ranking Task (VLLM)")
     parser.add_argument('--dataset_dir', type=str, required=True,
                         help='Directory containing the dataset')
-    parser.add_argument('--model', type=str, default="QwenVL2.5-7B-Instruct", 
+    parser.add_argument('--model', type=str, default="X-GenGroup/PaCo-Reward-7B", 
                        help='Model path or name')
-    parser.add_argument('--prompt_template', type=int, default=2, 
-                       help='Prompt template version (1 or 2)')
+    parser.add_argument('--prompt_template', type=int, default=3, choices=[1,2,3], 
+                       help='''Prompt template version (1, 2 or 3)
+                       1. Instruction with criteria
+                       2. Instruction for binary answer
+                       3. Instruction for binary answer with reasoning''')
     parser.add_argument('--tensor_parallel_size', type=int, default=1, 
                        help='Number of GPUs for tensor parallelism')
     parser.add_argument('--gpu_memory_utilization', type=float, default=0.9, 

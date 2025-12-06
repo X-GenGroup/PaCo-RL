@@ -66,10 +66,13 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description="Evaluate Consistency Scorer on Ranking Task")
     parser.add_argument('--dataset_dir', type=str, required=True,
                         help='Directory containing the dataset')
-    parser.add_argument('--model', type=str, default="ConsistencyReward-7B", 
+    parser.add_argument('--model', type=str, default="X-GenGroup/PaCo-Reward-7B", 
                        help='Model name for consistency scorer')
-    parser.add_argument('--prompt_template', type=int, default=1, choices=[1,2,3],
-                       help='Prompt template version to use (1, 2, or 3)')
+    parser.add_argument('--prompt_template', type=int, default=3, choices=[1,2,3], 
+                       help='''Prompt template version (1, 2 or 3)
+                       1. Instruction with criteria
+                       2. Instruction for binary answer
+                       3. Instruction for binary answer with reasoning''')
     parser.add_argument('--port', type=int, default=8000, 
                        help='Port number for the model server')
     parser.add_argument('--batch_size', type=int, default=64, 

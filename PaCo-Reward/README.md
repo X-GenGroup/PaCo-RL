@@ -45,6 +45,37 @@ bash train/paco_reward.sh
 ```
 
 
+### 3. Evaluation
+
+Evaluate reward model on [ConsistencyRank-Bench](https://huggingface.co/datasets/X-GenGroup/ConsistencyRank-Bench) and [EditReward-Bench](https://huggingface.co/datasets/EditScore/EditReward-Bench)
+
+```bash
+# Activate an env with vllm installed
+conda activate vllm
+
+# Download dataset
+hf download X-GenGroup/ConsistencyRank-Bench --repo-type dataset --local-dir ./ConsistencyRank-Bench
+
+
+# Evaluate on ConsistencyRank
+cd Consistency_Rank
+python eval_vllm.py \
+  --model X-GenGroup/PaCo-Reward-7B \
+  --tensor_parallel_size 1 \
+  --gpu_memory_utilization 0.85 \
+  --batch_size 8
+
+# Print evaluation table
+python print_eval_table.py --results_dir results \
+  --output_file results_summary.txt
+  --output_format txt
+
+
+# Evaluate on Edit-Bench
+cd ../Edit-Bench
+bash evaluate_vllm_PaCoReward.sh
+```
+
 
 ## ⚙️ Configuration
 
