@@ -12,6 +12,7 @@
 - [Get Started](#-get-started)
   - [Environment Setup](#1-environment-setup)
   - [Start Training](#2-start-training)
+  - [Evaluation](#3-evaluation)
 - [Configuration](#-configuration)
   - [First Token Weight](#first-token-weight)
   - [Batch Size Settings](#batch-size-settings)
