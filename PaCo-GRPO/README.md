@@ -14,15 +14,15 @@
   - [Model Download](#2-model-download)
   - [Reward Server](#3-reward-server)
   - [Start Training](#4-start-training)
+- [Decoupled Training](#-decoupled-training)
+  - [Resolution-decoupled Training](#resolution-decoupled-training)
+  - [Decouple Training and Testing Reward Functions](#decouple-training-and-testing-reward-functions)
 - [Multi-reward Configuration](#-multi-reward-configuration)
   - [Weighted Multi-Reward](#weighted-multi-reward)
   - [Custom Aggregation Functions](#custom-aggregation-functions)
-  - [Decouple Training and Testing](#decouple-training-and-testing)
   - [Cross-Model Evaluation](#cross-model-evaluation)
 - [Acknowledgement](#-acknowledgement)
 - [Citation](#-citation)
-
-
 
 ## 🚀 Get Started
 
@@ -97,7 +97,6 @@ bash vllm_server/launch.sh
 
 ### 4. Start Training
 Launch training on the rest gpus:
-
 ```bash
 export CUDA_VISIBLE_DEVICES=1,2,3,4,5,6,7
 # Activate training environment
@@ -113,7 +112,55 @@ bash scripts/single_node/train_flux_kontext.sh kontext_editing
 bash scripts/single_node/train_qwenimage_edit.sh qwen_editing
 ```
 
+## 🔄 Decoupled Training
 
+### Resolution-decoupled Training
+
+The training cost for DiT models increases **quadratically** with respect to the image resolution. We discovered that sampling and training on lower-resolution images can still provide **effective reward signals** and successfully guide the model toward better performance.
+
+To validate this insight, we trained `FLUX.1-dev` on the `OCR` task using image resolutions of `128`, `256`, and `512`, respectively. Critically, the evaluation curves for all experiments are based on a consistent `512` resolution. *Note that only the sampling and training phases use the lower resolutions.*
+
+> Inspired by FlowGRPO-Fast, SDE sampling is specifically applied only at timestep index 1 with a noise level of $a=0.8$.
+
+<div align="center">
+  <img src="../assets/flux_ocr_train.png" width="80%" alt="Training Curve" />
+  <p><em>Training curves with different resolutions (128, 256, 512)</em></p>
+  
+  <img src="../assets/flux_ocr_eval.png" width="80%" alt="Evaluation Curve" />
+  <p><em>Evaluation curves at 512 resolution</em></p>
+</div>
+
+
+To implement this, set the following arguments in `config/grpo.py`:
+```python
+# For simple tasks like GenEval, OCR, or PickScore:
+config.train.resolution = 256
+config.test.resolution = 512
+
+# For the Text-to-ImageSet task,
+# e.g., where the output image is a 2x2 grid layout of 4 512x512 sub-images:
+config.train.resolution = 512
+config.test.resolution = 1024
+```
+
+If `config.prompt_fn` is set to `geneval`, where the dataset utilizes the jsonl format, you may also set specific `height` and `width` keys for each individual item within the dataset.
+
+### Decouple Training and Testing Reward Functions
+
+Use different reward configurations for training and testing:
+```python
+config.train.reward_fn = {
+    "consistency_score": 0.2,
+    "subfig_clipT": 1,
+    "pickscore": 1,
+}
+
+config.test.reward_fn = {
+    "consistency_score": 0.1,
+    "subfig_clipT": 1.5,
+    "pickscore": 1,
+}
+```
 
 ## 🎯 Multi-reward Configuration
 
@@ -176,23 +223,6 @@ def summation_agg_fn(**grouped_rewards):
     
     return advantages
     # Note: Weights (if needed) should be applied inside the aggregation function
-```
-
-### Decouple Training and Testing
-
-Use different reward configurations for training and testing:
-```python
-config.train.reward_fn = {
-    "consistency_score": 0.2,
-    "subfig_clipT": 1,
-    "pickscore": 1,
-}
-
-config.test.reward_fn = {
-    "consistency_score": 0.1,
-    "subfig_clipT": 1.5,
-    "pickscore": 1,
-}
 ```
 
 ### Cross-Model Evaluation
@@ -263,13 +293,9 @@ config.test.reward_fn_kwargs = {
 }
 ```
 
-
-
 ## 🤗 Acknowledgement
 
 This repository is based on [Flow-GRPO](https://github.com/yifan123/flow_grpo) and [vLLM](https://github.com/vllm-project/vllm). We thank the authors for their valuable contributions to the community.
-
-
 
 ## ⭐ Citation
 
@@ -285,8 +311,6 @@ If you find this work helpful, please cite:
     url={https://arxiv.org/abs/2512.04784},
 }
 ```
-
-
 
 <div align="center">
   <sub>⭐ Star us on GitHub if you find PaCo-RL helpful!</sub>
