@@ -103,6 +103,11 @@ Our work is built upon [Flow-GRPO](https://github.com/yifan123/flow_grpo), [LLaM
 }
 ```
 
+## 📬 Contact
+
+If you have any inquiries, suggestions, or wish to contact us for any reason, we warmly invite you to email us at  jayceping6@gmail.com or cp3jia@stu.xjtu.edu.cn.
+
 <div align="center">
   <sub>⭐ Star us on GitHub if you find PaCo-RL helpful!</sub>
 </div>
+
