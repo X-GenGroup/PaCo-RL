@@ -173,7 +173,6 @@ def flux_pipeline(
     callback_on_step_end_tensor_inputs: List[str] = ["latents"],
     max_sequence_length: int = 512,
     noise_level: Optional[float] = None,
-    layout: Optional[Tuple[int, int]] = None,
     cps : bool = False,
 ) -> Tuple[
         torch.FloatTensor,

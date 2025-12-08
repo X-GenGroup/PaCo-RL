@@ -57,6 +57,32 @@ def set_scheduler_timesteps(
     return timesteps
 
 
+def adjust_image_dimension(
+        height: int,
+        width: int,
+        max_area: int,
+        vae_scale_factor: int,
+    ) -> Tuple[int, int]:
+    """
+    Logic of adjusting image dimensions to fit model requirements.
+    """
+    original_height, original_width = height, width
+    aspect_ratio = width / height
+    width = round((max_area * aspect_ratio) ** 0.5)
+    height = round((max_area / aspect_ratio) ** 0.5)
+
+    multiple_of = vae_scale_factor * 2
+    width = width // multiple_of * multiple_of
+    height = height // multiple_of * multiple_of
+
+    if height != original_height or width != original_width:
+        logger.warning(
+            f"Generation `height` and `width` have been adjusted from ({original_height, original_width}) to ({height}, {width}) to fit the model requirements."
+        )
+
+    return height, width
+
+
 def compute_log_prob(
         transformer,
         pipeline : FluxKontextPipeline,
@@ -78,6 +104,14 @@ def compute_log_prob(
     num_channels_latents = pipeline.transformer.config.in_channels // 4
     height = config.train.resolution if 'height' not in sample else sample['height'][0] # All height/width in the batch should be the same
     width = config.train.resolution if 'width' not in sample else sample['width'][0] # All height/width in the batch should be the same
+    # Adjust height and width to be less than max_area if needed, and keep aspect ratio
+    height, width = adjust_image_dimension(
+        height,
+        width,
+        config.train.resolution**2,
+        pipeline.vae_scale_factor,
+    )
+
     prompt = sample['prompt']
     device = latents.device
     dtype = latents.dtype
@@ -197,19 +231,12 @@ def flux_kontext_pipeline(
     height = height or pipeline.default_sample_size * pipeline.vae_scale_factor
     width = width or pipeline.default_sample_size * pipeline.vae_scale_factor
 
-    original_height, original_width = height, width
-    aspect_ratio = width / height
-    width = round((max_area * aspect_ratio) ** 0.5)
-    height = round((max_area / aspect_ratio) ** 0.5)
-
-    multiple_of = pipeline.vae_scale_factor * 2
-    width = width // multiple_of * multiple_of
-    height = height // multiple_of * multiple_of
-
-    if height != original_height or width != original_width:
-        logger.warning(
-            f"Generation `height` and `width` have been adjusted to {height} and {width} to fit the model requirements."
-        )
+    height, width = adjust_image_dimension(
+        height,
+        width,
+        max_area,
+        pipeline.vae_scale_factor,
+    )
 
     # 1. Check inputs. Raise error if not correct
     pipeline.check_inputs(

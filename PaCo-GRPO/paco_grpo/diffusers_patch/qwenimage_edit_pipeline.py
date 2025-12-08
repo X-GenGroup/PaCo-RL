@@ -77,7 +77,7 @@ def compute_log_prob(
     latents: torch.FloatTensor = sample["all_latents"][:, timestep_index] # Latents at current timestep, shape (B, seq_len, C)
     next_latents: torch.FloatTensor = sample["all_latents"][:, timestep_index + 1] # Latents at next timestep, shape (B, seq_len, C)
     image_latents: torch.FloatTensor = sample["image_latents"] # Image latents, shape (B, image_seq_len, C)
-    image: torch.FloatTensor = sample['ref_image']
+    image: torch.FloatTensor = sample['ref_image'] # Conditioning image, PIL Image
     prompt: str = sample['prompt']
     negative_prompt = None
     negative_prompt_embeds = None
@@ -90,6 +90,7 @@ def compute_log_prob(
 
     batch_size: int = latents.shape[0]
     num_channels_latents: int = pipeline.transformer.config.in_channels // 4
+    # `height` and `width` in `sample` are optional and prioritized if present
     height: int = config.train.resolution if 'height' not in sample else sample['height'][0] # All height/width in the batch should be the same
     width: int = config.train.resolution if 'width' not in sample else sample['width'][0] # All height/width in the batch should be the same
     device = latents.device
@@ -97,7 +98,11 @@ def compute_log_prob(
     true_cfg_scale = config.train.guidance_scale
 
     max_area = config.train.resolution ** 2
-    calculated_width, calculated_height, _ = calculate_dimensions(max_area, width / height)
+    # `calulated_width` and `calculated_height` are used for resizing the input conditioning image
+    # resize the conditioning image to be smaller than `config.train.resolution**2` while keeping aspect ratio
+    image_size = image.size
+    calculated_width, calculated_height, _ = calculate_dimensions(max_area, image_size[0] / image_size[1])
+    # `height` and `width` are used for the output image size
     height = height or calculated_height
     width = width or calculated_width
 
@@ -264,7 +269,10 @@ def qwenimage_edit_pipeline(
         torch.FloatTensor,
     ]:
     image_size = image[0].size if isinstance(image, list) else image.size
+    # `calulated_width` and `calculated_height` are used for resizing the input conditioning image
+    # `height` and `width` are used for the output image size
     calculated_width, calculated_height, _ = calculate_dimensions(max_area, image_size[0] / image_size[1])
+    # init diffusers code logic: `max_area`` will be ignored if both height and width are given
     height = height or calculated_height
     width = width or calculated_width
 

@@ -530,9 +530,7 @@ def eval(pipeline : FluxPipeline,
 
         heights = [prompt_meta.get('height', config.test.resolution) for prompt_meta in prompt_metadata]
         widths = [prompt_meta.get('width', config.test.resolution) for prompt_meta in prompt_metadata]
-        layouts = [prompt_meta.get('layout', '1x1') for prompt_meta in prompt_metadata]
-        layouts = [tuple(map(int, l.split('x'))) for l in layouts] # Convert '2x3' to (2, 3)
-        if not all(h == heights[0] for h in heights) or not all(w == widths[0] for w in widths) or not all(l == layouts[0] for l in layouts):
+        if not all(h == heights[0] for h in heights) or not all(w == widths[0] for w in widths):
             # Split the batch if there are different sizes
             images = []
             for i in tqdm(
@@ -555,7 +553,6 @@ def eval(pipeline : FluxPipeline,
                         height=heights[i],
                         width=widths[i],
                         noise_level=0,
-                        layout=layouts[i],
                     )
 
                 images.append(imgs.squeeze(0))  # (C, H, W)
@@ -572,7 +569,6 @@ def eval(pipeline : FluxPipeline,
                     height=heights[0],
                     width=widths[0],
                     noise_level=0,
-                    layout=layouts[0],
                 )
                 images = list(images.unbind(0)) # List[torch.Tensor(C, H, W)]
         # reward_fn accepts torch.Tensor (B, C, H, W) or List[torch.Tensor(C, H, W)]
@@ -1161,11 +1157,6 @@ def main(_):
             # Get heights and widths
             heights = [prompt_meta.get('height', config.train.resolution) for prompt_meta in prompt_metadata]
             widths = [prompt_meta.get('width', config.train.resolution) for prompt_meta in prompt_metadata]
-            layouts = [prompt_meta.get('layout', '1x1') for prompt_meta in prompt_metadata]
-            layouts = [
-                tuple(map(int, l.split('x'))) if isinstance(l, str) else tuple(map(int, l))
-                for l in layouts
-            ] # Convert '2x3' to (2, 3)
             # Fixed size training requires all heights and widths in the batch to be the same
             if not config.enable_flexible_size:
                 assert all(h == heights[0] for h in heights) and all(w == widths[0] for w in widths), \
@@ -1180,8 +1171,7 @@ def main(_):
                 generators = None
 
             # If all heights and widths are the same, we can batch them together
-            if all(h == heights[0] for h in heights) and all(w == widths[0] for w in widths) and all(l == layouts[0] for l in layouts):
-                # Encode each sub-prompt if layout is given
+            if all(h == heights[0] for h in heights) and all(w == widths[0] for w in widths):
                 with autocast():
                     with torch.no_grad():
                         images, all_latents, all_prompt_embeds, all_pooled_prompt_embeds, noise_timestep_indices, all_timesteps = flux_pipeline(
@@ -1193,7 +1183,6 @@ def main(_):
                             height=heights[0],
                             width=widths[0],
                             generator=generators,
-                            layout=layouts[0],
                             cps=config.sample.cps
                     )
                     images = list(images.unbind(0)) # List[Tensor(C, H, W)] with length batch_size
@@ -1223,7 +1212,6 @@ def main(_):
                                 height=heights[index],
                                 width=widths[index],
                                 generator=generators[index] if generators is not None else None,
-                                layout=layouts[index],
                                 cps=config.sample.cps
                         )
                     images.append(this_image.squeeze(0))  # add (C, H, W)
@@ -1238,7 +1226,6 @@ def main(_):
                     {
                         'height': heights[index],
                         'width': widths[index],
-                        'layout': layouts[index],
                         'prompt': prompts[index],
                         'metadata': prompt_metadata[index],
                         'timesteps': all_timesteps[index].unsqueeze(0), # Keep batch dimension as 1
@@ -1388,7 +1375,6 @@ def main(_):
             # sample:{
             # 'height': int,
             # 'width': int,
-            # 'layout': (int, int),
             # 'prompt': str,
             # 'all_latents': Tensor(1, config.sample.num_steps + 1, seq_len, c),
             # 'advantages': Tensor(1, 1),
