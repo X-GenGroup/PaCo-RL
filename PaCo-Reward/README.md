@@ -36,9 +36,22 @@ cd LLaMA-Factory
 pip install -e ".[torch,metrics]" --no-build-isolation
 ```
 
-### 2. Start Training
+### 2. Download SFT Dataset
 
-Launch training with the provided script:
+Download the our [PaCo-Dataset](https://huggingface.co/datasets/X-GenGroup/PaCo-Dataset) in the local directory:
+
+```bash
+# Download the dataset via huggingface-cli
+hf download X-GenGroup/PaCo-Dataset --repo-type dataset --local-dir /path/to/dataset
+
+# Decompress the images
+cd /path/to/dataset
+bash decompress.sh
+```
+
+### 3. Start Training
+
+Change the arguement `config/paco_reward_lora.yaml/dataset_dir` to your specified `/path/to/dataset`. Then, launch training with the provided script:
 ```bash
 cd PaCo-Reward
 conda activate paco-reward
@@ -46,21 +59,28 @@ bash train/paco_reward.sh
 ```
 
 
-### 3. Evaluation
+### 4. Evaluation
 
-Evaluate reward model on [ConsistencyRank-Bench](https://huggingface.co/datasets/X-GenGroup/ConsistencyRank-Bench) and [EditReward-Bench](https://huggingface.co/datasets/EditScore/EditReward-Bench)
+Evaluate reward model on [ConsistencyRank-Bench](https://huggingface.co/datasets/X-GenGroup/ConsistencyRank-Bench) and [EditReward-Bench](https://huggingface.co/datasets/EditScore/EditReward-Bench). First, download our [ConsistencyRank-Bench](https://huggingface.co/datasets/X-GenGroup/ConsistencyRank-Bench) benchmark:
+
+```bash
+# Download dataset and unzip images
+cd Consistency_Rank
+hf download X-GenGroup/ConsistencyRank-Bench --repo-type dataset --local-dir ./ConsistencyRank-Bench
+
+cd ./ConsistencyRank-Bench
+unzip images.zip
+```
+
+Then, evaluate the reward model on two benchmarks:
 
 ```bash
 # Activate an env with vllm installed
 conda activate vllm
-
-# Download dataset
-hf download X-GenGroup/ConsistencyRank-Bench --repo-type dataset --local-dir ./ConsistencyRank-Bench
-
-
-# Evaluate on ConsistencyRank
+# 1. Evaluate on ConsistencyRank
 cd Consistency_Rank
 python eval_vllm.py \
+  --dataset_dir ./ConsistencyRank-Bench \
   --model X-GenGroup/PaCo-Reward-7B \
   --tensor_parallel_size 1 \
   --gpu_memory_utilization 0.85 \
@@ -71,8 +91,7 @@ python print_eval_table.py --results_dir results \
   --output_file results_summary.txt
   --output_format txt
 
-
-# Evaluate on Edit-Bench
+# 2. Evaluate on Edit-Bench
 cd ../Edit-Bench
 bash evaluate_vllm_PaCoReward.sh
 ```
