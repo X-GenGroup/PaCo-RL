@@ -833,7 +833,12 @@ def load_pipeline(config : Namespace, accelerator : Accelerator):
         else:
             pipeline.transformer = get_peft_model(pipeline.transformer, transformer_lora_config)
 
+        # Add "old" adapter for PPO-style training
         pipeline.transformer.add_adapter("old", transformer_lora_config)
+        # Copy default adapter weights to old adapter
+        default_state_dict = pipeline.transformer.get_adapter_state_dict("default")
+        set_peft_model_state_dict(pipeline.transformer, default_state_dict, "old")
+
         pipeline.transformer.set_adapter("default")
 
     if config.enable_gradient_checkpointing:
