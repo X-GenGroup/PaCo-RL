@@ -1,5 +1,5 @@
-# Copied from https://github.com/kvablack/ddpo-pytorch/blob/main/ddpo_pytorch/diffusers_patch/ddim_with_logprob.py
-# We adapt it from flow to flow matching.
+# paco_grpo.diffusers_patch.sde_denoising_step.py
+# Modified from https://github.com/yifan123/flow_grpo/blob/main/flow_grpo/diffusers_patch/sd3_sde_with_logprob.py
 
 import math
 from typing import Optional, Union, Tuple

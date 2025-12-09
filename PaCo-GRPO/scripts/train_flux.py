@@ -894,7 +894,7 @@ def main(_):
 
     # -------------------------------------------------Set up online log-----------------------------------
     if not config.project_name:
-        config.project_name = 'FlowGRPO-Flux'
+        config.project_name = 'PaCoGRPO-Flux'
 
     run, logging_platform = set_online_log(accelerator, config)
 

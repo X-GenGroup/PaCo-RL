@@ -766,7 +766,7 @@ def main(_):
             f"config.train.batch_size {config.train.batch_size} should divide config.sample.batch_size {config.sample.batch_size} * config.sample.unique_sample_num_per_epoch {config.sample.unique_sample_num_per_epoch}"
 
     if not config.project_name:
-        config.project_name = 'FlowGRPO-QwenImageEdit'
+        config.project_name = 'PaCoGRPO-QwenImageEdit'
 
     run, logging_platform = set_online_log(accelerator, config)
 
@@ -1259,7 +1259,6 @@ def main(_):
             # sample:{
             # 'height': int,
             # 'width': int,
-            # 'layout': (int, int),
             # 'prompt': str,
             # 'all_latents': Tensor(1, config.sample.num_steps + 1, seq_len, c),
             # 'advantages': Tensor(1, 1),

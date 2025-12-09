@@ -1,4 +1,4 @@
-# flowgrpo.diffusers_patch.flux_pipeline_kontext.py
+# paco_grpo.diffusers_patch.qwenimage_edit_pipeline.py
 from argparse import Namespace
 from typing import Any, Dict, List, Optional, Union, Callable, Tuple
 import torch
