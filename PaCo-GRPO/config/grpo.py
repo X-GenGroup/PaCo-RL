@@ -4,11 +4,15 @@ import math
 from typing import Optional, Union, Dict, Callable
 from importlib.util import spec_from_file_location, module_from_spec
 import inspect
+from logging import getLogger
+
 
 import numpy as np
 from scipy.stats import gmean, hmean
 import torch
 from datetime import datetime
+
+logger = getLogger(__name__)
 
 time_stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
 
@@ -78,24 +82,19 @@ def get_base_config():
     config.sample.batch_size = 1
     config.sample.reward_batch_size = min(config.sample.batch_size * 4, 8) # Reward computation batch size
     config.sample.num_images_per_prompt = 16
-    unique_sample_num_range = range(42, 50)
-    config.sample.unique_sample_num_per_epoch = None # Number of unique prompts used in each epoch all gathered
+    config.sample.unique_sample_num_per_epoch = 42 # Number of unique prompts used in each epoch all gathered
 
     # Search for proper `unique_sample_num_per_epoch`
-    for num in unique_sample_num_range:
-        total_samples = num * config.sample.num_images_per_prompt
-        if total_samples % (gpu_number * config.sample.batch_size) == 0:
-            config.sample.unique_sample_num_per_epoch = num
-            break
-    assert config.sample.unique_sample_num_per_epoch is not None, f"Cannot find proper unique_sample_num_per_epoch in range {list(unique_sample_num_range)}, please check your configuration!"
+    sample_num_per_iteration = config.sample.batch_size * gpu_number
+    step = sample_num_per_iteration // math.gcd(config.sample.num_images_per_prompt, sample_num_per_iteration)
+    new_unique_sample_num = (config.sample.unique_sample_num_per_epoch + step - 1) // step * step
+    if new_unique_sample_num != config.sample.unique_sample_num_per_epoch:
+        logger.warning(f"""Adjusting `unique_sample_num_per_epoch` from {config.sample.unique_sample_num_per_epoch} to {new_unique_sample_num} to ensure even batching across GPUs.""")
+        config.sample.unique_sample_num_per_epoch = new_unique_sample_num
     
-    config.sample.sample_num_per_epoch = math.lcm(
-        config.sample.num_images_per_prompt * config.sample.unique_sample_num_per_epoch,
-        gpu_number * config.sample.batch_size
-    ) # Total number of samples across all processes
+    # Total number of samples across all processes
+    config.sample.sample_num_per_epoch = config.sample.num_images_per_prompt * config.sample.unique_sample_num_per_epoch
 
-    # Update number of unique prompt per epoch
-    config.sample.unique_sample_num_per_epoch = config.sample.sample_num_per_epoch // config.sample.num_images_per_prompt
     # number of batches per epoch per GPU
     config.sample.num_batches_per_epoch = int(config.sample.sample_num_per_epoch / (gpu_number * config.sample.batch_size))
 

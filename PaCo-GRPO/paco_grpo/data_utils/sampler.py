@@ -2,6 +2,9 @@ import math
 import torch
 from torch.utils.data import Sampler, Dataset, DataLoader
 from collections import Counter
+from logging import getLogger
+
+logger = getLogger(__name__)
 
 
 class DistributedGroupKRepeatSampler(Sampler):
@@ -46,11 +49,8 @@ class DistributedGroupKRepeatSampler(Sampler):
 
 class DistributedKRepeatSampler(Sampler):
     """
-    This class is a new implementation of the distributed K-repeat sampler, used in current code.
-    Where the number of unique samples is determined by the total number of replicas and the batch size,
-    and k can be not divisible by n*b.
     """
-    def __init__(self, dataset : Dataset, batch_size : int, k : int, m : int, num_replicas : int, rank : int, seed :int = 0):
+    def __init__(self, dataset : Dataset, batch_size : int, k : int, m : int, num_replicas : int, rank : int, seed : int = 0):
         self.dataset = dataset
         self.batch_size = batch_size  # Batch size per replica
         self.k = k                    # Number of repetitions per sample
@@ -61,14 +61,13 @@ class DistributedKRepeatSampler(Sampler):
         
         # Compute the number of samples for each batch iteration
         self.sample_num_per_iteration = self.num_replicas * self.batch_size
-        # Compute the lcm, total sample number per epoch
-        self.sample_num_per_epoch = math.lcm(self.k * self.m, self.sample_num_per_iteration)
-        # Compute the minimal iteration number to include k repetitions for all prompts,
-        # i.e., the number of batches per epoch per replica
-        self.num_batches_per_epoch = int(self.sample_num_per_epoch // self.sample_num_per_iteration)
-
-        # Update m - number of unique sample per epoch
-        self.m = self.sample_num_per_epoch // self.k
+        step = self.sample_num_per_iteration // math.gcd(self.k, self.sample_num_per_iteration)
+        new_m = (self.m + step - 1) // step * step  # Round up m to be multiple of step, `new_m` is the least multiple of step that is larger than `m`
+        if new_m != self.m:
+            logger.warning(f"Adjusted `m` from {self.m} to {new_m} to make sure `m`*`k` is multiple of `batch_size`*`num_replicas` for even distribution.")
+            self.m = new_m
+        
+        self.num_batches_per_epoch = (self.m * self.k) // self.sample_num_per_iteration
 
         self.epoch = 0
 
